@@ -28,9 +28,7 @@
 ;;;;;;;;;;;
 (define *ignored-list* '(#\space #\,))
 
-(define *delimiters-list* '(#\" #\space))
-
-(define (delimiter? char) (member char *delimiters-list*))
+(define *escape-character* #\\)
 
 (define (parse-token port delimiter)
   ;; Take port and delimiter and collect all non-delimiter characters
@@ -38,11 +36,15 @@
   (let ((buf '()))
     (do ((char (read-char port) (read-char port)))
         ((or (eof-object? (peek-char port))
-             (char=? (peek-char port) delimiter))
+             (if (not (char=? char *escape-character*))
+                 (char=? (peek-char port) delimiter) #f))
          (push! buf char)
          (cond ((char=? delimiter #\") (push! buf (read-char port))))
          (list->string (reverse buf)))
-      (push! buf char))))
+      (cond ((char=? char *escape-character*)
+             (push! buf char)
+             (push! buf (read-char port)))
+            (else (push! buf char))))))
 
 (define (parse-string string)
   ;; Open an input port for the string passed as argument
